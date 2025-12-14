@@ -11,6 +11,31 @@ Automated YouTube content pipeline that transforms Reddit stories into engaging 
 - 🎮 **Gaming Background**: Overlays story on Minecraft parkour or Subway Surfers gameplay
 - 📝 **Text Overlays**: Dynamic captions synced to narration
 - 📺 **YouTube Upload**: Automated upload with metadata, tags, and thumbnails
+- 🔗 **Reddit Attribution**: Full attribution with links back to original Reddit posts
+
+## Reddit Attribution (Important!)
+
+This pipeline is designed to properly attribute and link back to Reddit, promoting the platform and original authors:
+
+### In Every Video:
+- **On-Screen Attribution**: Reddit URL displayed at bottom of video
+- **Intro Overlay**: Shows r/subreddit, original author, and "Link in description" at start
+- **Subreddit Badge**: Persistent r/subreddit badge in top corner
+
+### In YouTube Description:
+- **Direct Link**: Full URL to original Reddit post
+- **Author Credit**: Original poster's username
+- **Subreddit Link**: Link to the subreddit for viewers to discover more
+- **Call-to-Action**: Encourages viewers to upvote the original post
+
+### Generated Metadata Files:
+Every video generates a `metadata_[story_id].json` file containing:
+- YouTube-optimized title with subreddit
+- Full description with attribution
+- Relevant tags
+- Original Reddit URL
+
+This helps you comply with Reddit's API terms by driving traffic back to the platform.
 
 ## Pipeline Flow
 

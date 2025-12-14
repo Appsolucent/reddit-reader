@@ -275,22 +275,31 @@ class UploadManager:
         video_path: Path,
         script: GeneratedScript,
         thumbnail_path: Path = None,
-        privacy: str = "private"
+        privacy: str = "private",
+        custom_title: str = None,
+        custom_description: str = None,
+        custom_tags: list = None
     ) -> dict:
-        """Upload a video using metadata from GeneratedScript"""
+        """Upload a video using metadata from GeneratedScript or custom values"""
         
-        # Build description
-        description = f"{script.video_description}\n\n"
-        description += f"📖 Original story from r/{script.subreddit}\n"
-        description += f"Story ID: {script.story_id}\n\n"
-        description += "🔔 Subscribe for daily Reddit stories!\n"
-        description += "#reddit #redditstories #storytime"
+        # Use custom values if provided, otherwise build from script
+        if custom_description:
+            description = custom_description
+        else:
+            description = f"{script.video_description}\n\n"
+            description += f"📖 Original story from r/{script.subreddit}\n"
+            description += f"Story ID: {script.story_id}\n\n"
+            description += "🔔 Subscribe for daily Reddit stories!\n"
+            description += "#reddit #redditstories #storytime"
+        
+        title = custom_title or script.video_title
+        tags = custom_tags or script.tags
         
         result = self.uploader.upload_video(
             video_path=video_path,
-            title=script.video_title,
+            title=title,
             description=description,
-            tags=script.tags,
+            tags=tags,
             privacy_status=privacy,
             thumbnail_path=thumbnail_path
         )
@@ -302,7 +311,7 @@ class UploadManager:
                 'video_id': result['id'],
                 'story_id': script.story_id,
                 'subreddit': script.subreddit,
-                'title': script.video_title,
+                'title': title,
                 'privacy': privacy
             })
             self._save_log()

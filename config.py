@@ -175,6 +175,19 @@ CHARACTER_IMAGE_PATH = CHARACTERS_DIR / "character_default.png"
 # Enable/disable character video generation
 ENABLE_CHARACTER_VIDEO = True
 
+# =============================================================================
+# YOUTUBE & ATTRIBUTION SETTINGS
+# =============================================================================
+
+# Your YouTube channel name (for video descriptions)
+CHANNEL_NAME = "Reddit Stories"
+
+# Show intro attribution overlay at start of video
+SHOW_INTRO_ATTRIBUTION = True
+
+# Show persistent Reddit URL at bottom of video
+SHOW_URL_ATTRIBUTION = True
+
 # Where to position the character in the video
 # Options: "bottom_right", "bottom_left", "top_right", "top_left", "center_bottom"
 CHARACTER_POSITION = "bottom_right"

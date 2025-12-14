@@ -196,6 +196,105 @@ class VideoAssembler:
         except Exception:
             return None
     
+    def _create_reddit_attribution(
+        self,
+        reddit_url: str,
+        duration: float,
+        show_duration: float = None
+    ) -> Optional[TextClip]:
+        """
+        Create a Reddit URL attribution overlay.
+        Shows at the bottom of the video.
+        
+        Args:
+            reddit_url: Full URL to the Reddit post
+            duration: Total video duration
+            show_duration: How long to show the URL (None = entire video)
+        """
+        try:
+            # Shorten URL for display if needed
+            display_url = reddit_url
+            if len(display_url) > 60:
+                # Show shortened version
+                display_url = reddit_url.replace("https://", "").replace("www.", "")
+                if len(display_url) > 55:
+                    display_url = display_url[:52] + "..."
+            
+            # Create the attribution text
+            attribution_text = f"📖 Source: {display_url}"
+            
+            attribution = TextClip(
+                attribution_text,
+                fontsize=24,
+                color='white',
+                font=self.config.font,
+                stroke_color='black',
+                stroke_width=1,
+                method='label'
+            )
+            
+            # Set duration
+            if show_duration is None:
+                show_duration = duration
+            attribution = attribution.set_duration(show_duration)
+            
+            # Position at bottom of screen
+            attribution = attribution.set_position(
+                ('center', self.config.height - 50)
+            )
+            
+            return attribution
+            
+        except Exception as e:
+            print(f"Error creating attribution overlay: {e}")
+            return None
+    
+    def _create_intro_attribution(
+        self,
+        subreddit: str,
+        original_author: str,
+        reddit_url: str,
+        intro_duration: float = 5.0
+    ) -> list:
+        """
+        Create intro attribution overlays shown at the start of the video.
+        Shows subreddit, author, and URL prominently.
+        """
+        clips = []
+        
+        try:
+            # Main attribution text
+            lines = [
+                f"📍 r/{subreddit}",
+                f"✍️ Original story by u/{original_author}",
+                f"🔗 Link in description"
+            ]
+            
+            y_position = self.config.height // 2 - 60
+            
+            for i, line in enumerate(lines):
+                clip = TextClip(
+                    line,
+                    fontsize=36 if i == 0 else 28,
+                    color='white',
+                    font=self.config.font,
+                    stroke_color='black',
+                    stroke_width=2,
+                    method='label'
+                )
+                clip = clip.set_duration(intro_duration)
+                clip = clip.set_start(0)
+                clip = clip.set_position(('center', y_position + (i * 50)))
+                clip = clip.crossfadein(0.5)
+                clip = clip.crossfadeout(0.5)
+                clips.append(clip)
+            
+            return clips
+            
+        except Exception as e:
+            print(f"Error creating intro attribution: {e}")
+            return []
+    
     def _get_character_position(self, char_clip_size: tuple) -> tuple:
         """Calculate character position based on config setting"""
         char_w, char_h = char_clip_size
@@ -258,9 +357,12 @@ class VideoAssembler:
         script: GeneratedScript,
         audio_segments: list[AudioSegment],
         output_path: Path,
-        character_videos: list = None
+        character_videos: list = None,
+        reddit_url: str = None,
+        original_author: str = None,
+        show_intro_attribution: bool = True
     ) -> bool:
-        """Assemble the final video with optional character overlays"""
+        """Assemble the final video with optional character overlays and Reddit attribution"""
         
         print("Assembling video...")
         
@@ -327,17 +429,41 @@ class VideoAssembler:
         if badge:
             text_clips.insert(0, badge)
         
+        # Create Reddit attribution overlays
+        attribution_clips = []
+        
+        if reddit_url:
+            print(f"  Adding Reddit attribution: {reddit_url}")
+            
+            # Persistent bottom URL (shown throughout video)
+            url_overlay = self._create_reddit_attribution(reddit_url, total_duration)
+            if url_overlay:
+                attribution_clips.append(url_overlay)
+            
+            # Intro attribution (shown at start)
+            if show_intro_attribution and original_author:
+                intro_clips = self._create_intro_attribution(
+                    subreddit=script.subreddit,
+                    original_author=original_author,
+                    reddit_url=reddit_url,
+                    intro_duration=5.0
+                )
+                attribution_clips.extend(intro_clips)
+        
         # Composite everything
         print("  Compositing video...")
         
         # Combine audio
         final_audio = CompositeAudioClip(audio_clips)
         
-        # Layer order: background -> character -> text overlays
-        all_clips = [background] + character_clips + text_clips
+        # Layer order: background -> character -> text overlays -> attribution
+        all_clips = [background] + character_clips + text_clips + attribution_clips
         
         if character_clips:
             print(f"  Adding {len(character_clips)} character video overlays...")
+        
+        if attribution_clips:
+            print(f"  Adding {len(attribution_clips)} attribution overlays...")
         
         # Combine video with text overlays
         final_video = CompositeVideoClip(

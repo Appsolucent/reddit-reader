@@ -16,6 +16,7 @@ from script_generator import ScriptGenerator, GeneratedScript
 from audio_generator import AudioGenerator, AudioSegment
 from video_assembler import VideoAssembler
 from youtube_uploader import UploadManager
+from description_generator import DescriptionGenerator, VideoMetadata
 
 # Optional character generation
 try:
@@ -35,6 +36,7 @@ class RedditStoriesPipeline:
         self.script_gen = ScriptGenerator()
         self.audio_gen = AudioGenerator()
         self.video_assembler = VideoAssembler()
+        self.description_gen = DescriptionGenerator()
         
         # Character generation (optional)
         if enable_character is None:
@@ -175,7 +177,10 @@ class RedditStoriesPipeline:
                 script=script,
                 audio_segments=audio_segments,
                 output_path=video_path,
-                character_videos=character_videos
+                character_videos=character_videos,
+                reddit_url=story.url,
+                original_author=story.author,
+                show_intro_attribution=True
             )
             
             if not success:
@@ -183,10 +188,29 @@ class RedditStoriesPipeline:
                 return results
             
             results['video_path'] = str(video_path)
+            results['reddit_url'] = story.url
+            results['original_author'] = story.author
             
             # Create thumbnail
             thumbnail_path = config.OUTPUT_DIR / f"thumb_{story.id}.jpg"
             self.video_assembler.create_thumbnail(script, thumbnail_path)
+            
+            # Generate YouTube metadata with Reddit attribution
+            print("  Generating YouTube metadata with attribution...")
+            metadata = self.description_gen.generate_full_metadata(
+                reddit_url=story.url,
+                subreddit=story.subreddit,
+                original_title=story.title,
+                original_author=story.author,
+                story_summary=script.summary if hasattr(script, 'summary') else ""
+            )
+            
+            # Save metadata to file (for manual upload or reference)
+            metadata_path = config.OUTPUT_DIR / f"metadata_{story.id}.json"
+            self.description_gen.save_metadata(metadata, metadata_path)
+            results['metadata_path'] = str(metadata_path)
+            results['youtube_title'] = metadata.title
+            results['youtube_description'] = metadata.description
             
             # Step 6: Upload to YouTube (optional)
             if upload:
@@ -197,7 +221,10 @@ class RedditStoriesPipeline:
                     video_path=video_path,
                     script=script,
                     thumbnail_path=thumbnail_path if thumbnail_path.exists() else None,
-                    privacy=privacy
+                    privacy=privacy,
+                    custom_title=metadata.title,
+                    custom_description=metadata.description,
+                    custom_tags=metadata.tags
                 )
                 
                 if upload_result:
@@ -326,11 +353,16 @@ class RedditStoriesPipeline:
                 script=script,
                 audio_segments=audio_segments,
                 output_path=video_path,
-                character_videos=character_videos
+                character_videos=character_videos,
+                reddit_url=story.url,
+                original_author=story.author,
+                show_intro_attribution=True
             )
             
             if success:
                 results['video_path'] = str(video_path)
+                results['reddit_url'] = story.url
+                results['original_author'] = story.author
                 results['success'] = True
             
             # Upload if requested
